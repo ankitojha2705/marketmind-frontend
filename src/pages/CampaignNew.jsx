@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createCampaign } from '../store/db.js'
 
 
 const allPlatforms = ['instagram', 'tiktok', 'facebook', 'linkedin']
@@ -16,7 +17,12 @@ setPlatforms((list) => list.includes(p) ? list.filter(x => x !== p) : [...list, 
 
 
 const generateDrafts = () => {
-alert('In v0.2 this will create drafts. For now, form data is valid ✅')
+if (!name.trim() || !brief.trim() || platforms.length === 0) {
+alert('Please enter a name, brief, and select at least one platform.')
+return
+}
+createCampaign({ name: name.trim(), brief: brief.trim(), platforms })
+window.location.hash = '#/dashboard'
 }
 
 
