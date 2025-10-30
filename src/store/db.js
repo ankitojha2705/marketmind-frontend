@@ -56,6 +56,7 @@ return { campaign, drafts }
 }
 
 
+export function listCampaigns() { return state.campaigns }
 export function listDrafts() { return state.drafts.filter(d => d.status === 'draft') }
 export function listScheduled() { return state.drafts.filter(d => d.status === 'scheduled') }
 
