@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createCampaign } from '../store/db.js'
+import { useState } from 'react';
+import { createCampaign } from '../store/db';
 
 const allPlatforms = [
   { id: 'instagram', name: 'Instagram', icon: '📸' },
@@ -55,27 +55,33 @@ export default function CampaignNew() {
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !brief.trim() || platforms.length === 0) {
       alert('Please fill in all required fields');
       return;
     }
     
-    const campaignData = {
-      name: name.trim(),
-      brief: brief.trim(),
-      objective,
-      platforms,
-      audience,
-      budget,
-      schedule,
-      status: 'draft',
-      createdAt: new Date().toISOString()
-    };
-    
-    createCampaign(campaignData);
-    window.location.hash = '#/dashboard';
+    try {
+      // Clear any existing data
+      localStorage.removeItem('mm_state_v02');
+      
+      // Create campaign with required fields
+      const result = createCampaign({
+        name: name.trim(),
+        brief: brief.trim(),
+        platforms: platforms
+      });
+      
+      console.log('Campaign created successfully:', result);
+      
+      // Force a page reload to ensure the dashboard updates
+      window.location.href = '#/dashboard';
+      window.location.reload();
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      alert(`Failed to create campaign: ${error.message}`);
+    }
   };
 
   const renderStep1 = () => (

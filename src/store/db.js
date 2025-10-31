@@ -8,8 +8,18 @@ return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-
 
 
 const initial = {
-campaigns: [], // {id, name, brief, platforms, createdAt}
-drafts: [], // {id, campaignId, platform, caption, hashtags, status, scheduledAt}
+  campaigns: [], // {id, name, brief, platforms, createdAt}
+  drafts: [] // {id, campaignId, platform, caption, hashtags, status, scheduledAt}
+};
+
+// Initialize with sample data if empty
+function initializeData() {
+  const currentState = load();
+  if (currentState.campaigns === undefined || currentState.drafts === undefined) {
+    save(initial);
+    return initial;
+  }
+  return currentState;
 }
 
 
@@ -21,7 +31,7 @@ try { return JSON.parse(localStorage.getItem(KEY)) || initial } catch { return i
 function save(state) { localStorage.setItem(KEY, JSON.stringify(state)) }
 
 
-let state = load()
+let state = initializeData()
 const listeners = new Set()
 
 
@@ -34,25 +44,41 @@ export function resetAll() { state = structuredClone(initial); save(state); noti
 
 
 export function createCampaign({ name, brief, platforms }) {
-const id = uid()
-const campaign = { id, name, brief, platforms, createdAt: new Date().toISOString() }
-state.campaigns.push(campaign)
+  try {
+    const id = uid();
+    const campaign = { 
+      id, 
+      name, 
+      brief, 
+      platforms, 
+      createdAt: new Date().toISOString() 
+    };
 
+    const newDrafts = platforms.map((p) => ({
+      id: uid(),
+      campaignId: id,
+      platform: p,
+      caption: `${name}: ${brief} — (${p})`,
+      hashtags: ['#sale', '#trending'],
+      status: 'draft',
+      scheduledAt: null,
+      createdAt: new Date().toISOString()
+    }));
 
-const drafts = platforms.map((p) => ({
-id: uid(),
-campaignId: id,
-platform: p,
-caption: `${name}: ${brief} — (${p})`,
-hashtags: ['#sale', '#trending'],
-status: 'draft', // 'draft' | 'scheduled' | 'posted'
-scheduledAt: null,
-}))
-state.drafts.push(...drafts)
+    // Update state immutably
+    state = {
+      ...state,
+      campaigns: [...(state.campaigns || []), campaign],
+      drafts: [...(state.drafts || []), ...newDrafts]
+    };
 
-
-save(state); notify()
-return { campaign, drafts }
+    save(state);
+    notify();
+    return { campaign, drafts: newDrafts };
+  } catch (error) {
+    console.error('Error in createCampaign:', error);
+    throw error;
+  }
 }
 
 
