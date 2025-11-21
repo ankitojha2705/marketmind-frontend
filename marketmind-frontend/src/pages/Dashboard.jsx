@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { getState, subscribe, scheduleDraft } from '../store/db';
-import { 
+import {
   CalendarIcon, 
   ClockIcon, 
   ChartBarIcon, 
