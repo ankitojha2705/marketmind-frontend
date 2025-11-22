@@ -9,23 +9,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-      } finally {
+// In AuthContext.jsx
+useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
         setLoading(false);
+        return;
       }
-    };
-    checkAuth();
-  }, []);
+
+      // Validate token and fetch user data
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid or expired token');
+      }
+
+      const userData = await response.json();
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to load user:', error);
+      localStorage.removeItem('token'); // Clear invalid token
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadUser();
+}, []);
 
 
   const register = async (userData) => {
@@ -74,6 +90,7 @@ export const AuthProvider = ({ children }) => {
         loginWithGoogle,
         logout,
         isAuthenticated: !!user,
+        setUser,
       }}
     >
       {!loading && children}

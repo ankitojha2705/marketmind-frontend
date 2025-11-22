@@ -29,19 +29,20 @@ router.get(
     try {
       // Generate JWT token
       const token = req.user.getSignedJwtToken();
-      // For testing, you can send the token as JSON
-      res.json({
-        success: true,
-        token: token,
-        user: {
-          id: req.user._id,
-          name: req.user.fullname,
-          email: req.user.email
-        }
-      });
+      
+      // Redirect to frontend with token and user data
+      res.redirect(
+        `http://localhost:5173/auth/callback?token=${token}&user=${encodeURIComponent(
+          JSON.stringify({
+            id: req.user._id,
+            name: req.user.fullname,
+            email: req.user.email
+          })
+        )}`
+      );
     } catch (error) {
       console.error('Error in Google callback:', error);
-      res.redirect('/login?error=auth_failed');
+      res.redirect('http://localhost:5173');
     }
   }
 );

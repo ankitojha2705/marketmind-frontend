@@ -45,7 +45,6 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-      navigate('/dashboard');
     } catch (err) {
       setError('Failed to login with Google. Please try again.');
       console.error('Google login error:', err);
