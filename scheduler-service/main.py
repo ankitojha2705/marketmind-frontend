@@ -147,7 +147,7 @@ async def schedule_post(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Schedule a post by post_id
+    Update (reschedule) the most recent schedule for a post.
     
     Args:
         post_id: The unique identifier for the post
@@ -158,7 +158,7 @@ async def schedule_post(
         ScheduleItem with schedule_id, post_id, and publish_time
     """
     try:
-        schedule = await ScheduleService.create_post_schedule(
+        schedule = await ScheduleService.update_post_schedule(
             db=db,
             post_id=post_id,
             timestamp=request.timestamp,
@@ -177,7 +177,7 @@ async def schedule_post(
         else:
             raise HTTPException(status_code=400, detail=f"Invalid request: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create schedule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update schedule: {str(e)}")
 
 
 @app.get("/campaign/{campaign_id}")

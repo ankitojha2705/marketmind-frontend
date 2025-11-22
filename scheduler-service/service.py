@@ -46,85 +46,65 @@ class ScheduleService:
     """Service layer for schedule business logic"""
 
     @staticmethod
-    async def create_post_schedule(
+    async def update_post_schedule(
         db: AsyncSession,
         post_id: str,
         timestamp: str,
         timezone: str | None = None
     ) -> Schedule:
         """
-        Create a post schedule by converting timestamp to UTC and saving to database
-        
-        Args:
-            db: Database session
-            post_id: The post identifier (UUID string)
-            timestamp: Timestamp string in the specified timezone
-            timezone: Optional timezone string (e.g., 'PST', 'UTC').
-                     If not provided, uses brand's default timezone.
-        
-        Returns:
-            Schedule object with generated schedule_id
+        Update the most recent schedule for a post with a new publish time.
         """
-        # Convert post_id string to UUID
         post_uuid = uuid.UUID(post_id)
-        
-        # If timezone not provided, fetch from brand
+
+        post_result = await db.execute(
+            select(Post).where(Post.post_id == post_uuid)
+        )
+        post = post_result.scalar_one_or_none()
+
+        if post is None:
+            raise ValueError(f"Post with id {post_id} not found")
+
         if timezone is None:
-            # Fetch post to get brand_id
-            post_result = await db.execute(
-                select(Post).where(Post.post_id == post_uuid)
-            )
-            post = post_result.scalar_one_or_none()
-            
-            if post is None:
-                raise ValueError(f"Post with id {post_id} not found")
-            
-            # Fetch brand to get default timezone
             brand_result = await db.execute(
                 select(Brand).where(Brand.brand_id == post.brand_id)
             )
             brand = brand_result.scalar_one_or_none()
-            
+
             if brand is None:
                 raise ValueError(f"Brand with id {post.brand_id} not found")
-            
+
             timezone = brand.brand_default_timezone
-        
-        # Parse the timestamp string (remove timezone info if present, we'll use the provided timezone)
+
         try:
-            # Try parsing with timezone info first
             dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            # Remove timezone info - we'll use the provided timezone parameter
             if dt.tzinfo is not None:
                 dt = dt.replace(tzinfo=None)
         except ValueError:
-            # Parse without timezone info
             dt = datetime.fromisoformat(timestamp)
-        
-        # Localize to the specified timezone
+
         tz = pytz.timezone(timezone)
         dt = tz.localize(dt)
-        
-        # Convert to UTC
         publish_time_utc = dt.astimezone(pytz.UTC)
-        
-        # Generate UUID for schedule_id
-        schedule_id = uuid.uuid4()
-        
-        # Create schedule record
-        schedule = Schedule(
-            schedule_id=schedule_id,
-            post_id=post_uuid,
-            publish_time=publish_time_utc,
-            status=ScheduleStatus.PENDING,
-            retry_count=0
+
+        schedule_result = await db.execute(
+            select(Schedule)
+            .where(Schedule.post_id == post_uuid)
+            .order_by(desc(Schedule.publish_time))
+            .limit(1)
         )
-        
-        # Save to database
-        db.add(schedule)
+        schedule = schedule_result.scalar_one_or_none()
+
+        if schedule is None:
+            raise ValueError(f"No schedule found for post {post_id}")
+
+        schedule.publish_time = publish_time_utc
+        schedule.status = ScheduleStatus.PENDING
+        schedule.retry_count = 0
+
         await db.commit()
         await db.refresh(schedule)
-        
+
         return schedule
 
     @staticmethod
